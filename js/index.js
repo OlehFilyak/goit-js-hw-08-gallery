@@ -57,37 +57,81 @@
 import galleryItems from "./gallery-items.js";
 
 //  ========= GET LINKS =============
-const galleryRef = document.querySelector(".js-gallery"),
-  modalRef = document.querySelector(".js-lightbox"),
-  overlayRef = document.querySelector(".lightbox__overlay"),
-  lightboxContent = document.querySelector(".lightbox__content"),
-  bigImgRef = document.querySelector(".lightbox__image"),
-  btnModalRef = document.querySelector(".lightbox__button");
-
+const refs = {
+  gallery: document.querySelector(".js-gallery"),
+  modal: document.querySelector(".js-lightbox"),
+  imgInModal: document.querySelector(".lightbox__image"),
+};
 // ========== ADD MARKUP ============
-
-let markup = ``;
-
-function renderGallery(galleryItems) {
-  galleryItems.forEach(
-    // перебираємо масив на кожній ітерації, записуючи в строку всі потрібні теги
-    (
-      { preview, original, description } //деструктуризація
-    ) =>
-      (markup += `
+const markup = galleryItems.map(
+  ({ preview, original, description }) => `
       <li class='gallery__item'>
       <a class="gallery__link" href='${original}'>
       <img class = 'gallery__image' src="${preview}" alt="${description}" data-source = ${original} />
       </a>
-      </li>`)
-  );
-  galleryRef.insertAdjacentHTML("beforeend", markup);
+      </li>`
+);
+refs.gallery.insertAdjacentHTML("beforeend", markup.join(""));
+
+// ========= FUNCTIONS =========
+// ========= OPEN MODAL =========
+refs.gallery.addEventListener("click", onModalOpen);
+let activeIndex = null;
+function onModalOpen(e) {
+  e.preventDefault();
+  if (e.target.nodeName !== "IMG") {
+    return;
+  }
+  markup.forEach((el, ind) => {
+    if (el.includes(e.target.src)) {
+      activeIndex = ind;
+      return;
+    }
+  });
+  refs.modal.classList.add("is-open");
+  refs.imgInModal.src = e.target.dataset.source;
+  refs.imgInModal.alt = e.target.alt;
 }
-renderGallery(galleryItems);
 
-// ========= ADD EVENT LISTENER =========
+// ========= СLOSE MODAL =========
+refs.modal.addEventListener("click", (e) => {
+  if (e.target.nodeName !== "IMG") {
+    closeModal();
+  }
+});
+window.addEventListener("keyup", (e) => {
+  if (e.key === "Escape") {
+    closeModal();
+  }
+});
+function closeModal(e) {
+  refs.modal.classList.remove("is-open");
+  refs.imgInModal.src = "";
+  refs.imgInModal.alt = "";
+}
 
-modalRef.addEventListener("click", onModalOpen);
-btnModalRef.addEventListener("click", onModalClose);
-overlayRef.addEventListener("click", onBackdropCloseModal);
-bigImgRef.addEventListener("click", onChangeClick);
+// ========= CHANGE IMG IN MODAL =========
+window.addEventListener("keyup", changeImgInModal);
+
+function changeImgInModal({ key }) {
+  if (key === "ArrowRight" && galleryItems.length - 1 > activeIndex) {
+    activeIndex += 1;
+    refs.imgInModal.src = galleryItems[activeIndex].original;
+    return;
+  }
+  if (key === "ArrowLeft" && activeIndex > 0) {
+    activeIndex -= 1;
+    refs.imgInModal.src = galleryItems[activeIndex].original;
+    return;
+  }
+  if (key === "ArrowRight" && activeIndex === galleryItems.length - 1) {
+    activeIndex = 0;
+    refs.imgInModal.src = galleryItems[activeIndex].original;
+    return;
+  }
+  if (key === "ArrowLeft" && activeIndex === 0) {
+    activeIndex = galleryItems.length - 1;
+    refs.imgInModal.src = galleryItems[activeIndex].original;
+    return;
+  }
+}
